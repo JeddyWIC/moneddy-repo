@@ -3,6 +3,18 @@ import { db } from "@/lib/db";
 import { processes, tags, processTags } from "@/lib/schema";
 import { desc, like, or, eq, sql, and } from "drizzle-orm";
 
+async function logActivity(action: string, title: string, author: string, request: NextRequest) {
+  try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const userAgent = request.headers.get("user-agent") || "unknown";
+    await db.run(
+      sql`INSERT INTO activity_log (action, title, author, ip, user_agent, created_at) VALUES (${action}, ${title}, ${author}, ${ip}, ${userAgent}, ${new Date().toISOString()})`
+    );
+  } catch {
+    // Don't let logging failures break the request
+  }
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.toLowerCase();
@@ -137,6 +149,9 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    // Log the activity
+    await logActivity("CREATE", title, author, request);
 
     return NextResponse.json(process, { status: 201 });
   } catch (error) {

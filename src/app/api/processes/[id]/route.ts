@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { processes, tags, processTags, images } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+
+async function logActivity(action: string, title: string, author: string, request: NextRequest) {
+  try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const userAgent = request.headers.get("user-agent") || "unknown";
+    await db.run(
+      sql`INSERT INTO activity_log (action, title, author, ip, user_agent, created_at) VALUES (${action}, ${title}, ${author}, ${ip}, ${userAgent}, ${new Date().toISOString()})`
+    );
+  } catch {
+    // Don't let logging failures break the request
+  }
+}
 
 export async function GET(
   _request: NextRequest,
@@ -83,6 +95,8 @@ export async function PUT(
       }
     }
 
+    await logActivity("EDIT", title, author, request);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
@@ -90,14 +104,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const processId = parseInt(id);
 
   try {
+    // Get process info before deleting for the log
+    const [process] = await db.select().from(processes).where(eq(processes.id, processId));
     await db.delete(processes).where(eq(processes.id, processId));
+    await logActivity("DELETE", process?.title || "unknown", process?.author || "unknown", request);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });

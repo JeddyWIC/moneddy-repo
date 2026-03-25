@@ -50,6 +50,16 @@ export async function migrate(url?: string, authToken?: string) {
       name TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      title TEXT,
+      author TEXT,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 
   console.log("Migration complete");
