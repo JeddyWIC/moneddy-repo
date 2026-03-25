@@ -1,0 +1,113 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f5f5f4;
+  --foreground: #1c1917;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+  /* WIT Gold palette */
+  --color-yellow-50: #fffbeb;
+  --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
+  --color-yellow-300: #ffe066;
+  --color-yellow-400: #FFCB05;
+  --color-yellow-500: #FFCB05;
+  --color-yellow-600: #FBAA19;
+  --color-yellow-700: #ca8a04;
+  --color-yellow-800: #854d0e;
+  --color-yellow-900: #422006;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Tiptap editor styles */
+.tiptap {
+  outline: none;
+  color: var(--foreground);
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: #78716c;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  margin: 1rem 0;
+}
+
+.tiptap h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tiptap h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid #FFCB05;
+  padding-left: 1rem;
+  color: #78716c;
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.dark .tiptap blockquote {
+  border-left-color: #FFCB05;
+  color: #a8a29e;
+}
+
+.tiptap hr {
+  border-color: #d6d3d1;
+  margin: 1.5rem 0;
+}
+
+.dark .tiptap hr {
+  border-color: #292524;
+}
+
+/* Prose image sizing for rendered content */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+}
