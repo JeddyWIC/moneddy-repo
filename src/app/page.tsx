@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
 import ProcessCard from "@/components/ProcessCard";
@@ -77,41 +78,52 @@ export default async function Home() {
         <SearchBar />
       </div>
 
-      {/* Tag Cloud */}
-      {popularTags.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4 text-center">
-            Tags
-          </h2>
-          <TagCloud tags={popularTags} />
-        </section>
-      )}
+      {/* Main content + sidebar */}
+      <div className="flex gap-8">
+        {/* Main content area */}
+        <div className="flex-1 min-w-0">
+          <section>
+            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4">
+              {recentProcesses.length > 0 ? "Recent" : "Getting Started"}
+            </h2>
+            {recentProcesses.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {recentProcesses.map((p) => (
+                  <ProcessCard key={p.id} {...p} category={p.category || ""} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 bg-white dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800">
+                <p className="text-stone-500 dark:text-stone-400 mb-4">
+                  Nothing here yet. Start documenting.
+                </p>
+                <Link
+                  href="/process/new"
+                  className="inline-block px-6 py-3 bg-yellow-600 text-white rounded hover:bg-yellow-700 font-medium transition-colors"
+                >
+                  Create First Entry
+                </Link>
+              </div>
+            )}
+          </section>
+        </div>
 
-      {/* Recent Processes */}
-      <section>
-        <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4">
-          {recentProcesses.length > 0 ? "Recent" : "Getting Started"}
-        </h2>
-        {recentProcesses.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentProcesses.map((p) => (
-              <ProcessCard key={p.id} {...p} category={p.category || ""} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-white dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800">
-            <p className="text-stone-500 dark:text-stone-400 mb-4">
-              Nothing here yet. Start documenting.
-            </p>
-            <a
-              href="/process/new"
-              className="inline-block px-6 py-3 bg-yellow-600 text-white rounded hover:bg-yellow-700 font-medium transition-colors"
-            >
-              Create First Entry
-            </a>
+        {/* Right sidebar — tags */}
+        {popularTags.length > 0 && (
+          <div className="hidden lg:block w-56 flex-shrink-0">
+            <div className="sticky top-24">
+              <TagCloud tags={popularTags} />
+            </div>
           </div>
         )}
-      </section>
+      </div>
+
+      {/* Tags below content on mobile/tablet */}
+      {popularTags.length > 0 && (
+        <div className="lg:hidden mt-10">
+          <TagCloud tags={popularTags} />
+        </div>
+      )}
     </div>
   );
 }
