@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { processes, tags, processTags, attachments } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, ne, and, sql, inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +40,78 @@ export default async function ProcessPage({
     })
     .from(attachments)
     .where(eq(attachments.processId, processId));
+
+  // Find related processes that share tags with this one
+  let relatedProcesses: {
+    id: number;
+    title: string;
+    author: string;
+    category: string | null;
+    sharedTags: string[];
+    totalShared: number;
+  }[] = [];
+
+  if (tagNames.length > 0) {
+    // Get tag IDs for this process's tags
+    const tagRows = await db
+      .select({ id: tags.id, name: tags.name })
+      .from(tags)
+      .where(inArray(tags.name, tagNames));
+
+    const tagIds = tagRows.map((t) => t.id);
+    const tagIdToName = Object.fromEntries(tagRows.map((t) => [t.id, t.name]));
+
+    if (tagIds.length > 0) {
+      // Find other processes that share any of these tags
+      const sharedRows = await db
+        .select({
+          processId: processTags.processId,
+          tagId: processTags.tagId,
+        })
+        .from(processTags)
+        .where(
+          and(
+            inArray(processTags.tagId, tagIds),
+            ne(processTags.processId, processId)
+          )
+        );
+
+      // Group by process and count shared tags
+      const processMap = new Map<number, string[]>();
+      for (const row of sharedRows) {
+        const existing = processMap.get(row.processId) || [];
+        existing.push(tagIdToName[row.tagId]);
+        processMap.set(row.processId, existing);
+      }
+
+      // Sort by number of shared tags (most shared first), limit to 6
+      const sorted = [...processMap.entries()]
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 6);
+
+      if (sorted.length > 0) {
+        const relatedIds = sorted.map(([pid]) => pid);
+        const relatedRows = await db
+          .select({
+            id: processes.id,
+            title: processes.title,
+            author: processes.author,
+            category: processes.category,
+          })
+          .from(processes)
+          .where(inArray(processes.id, relatedIds));
+
+        relatedProcesses = sorted.map(([pid, shared]) => {
+          const p = relatedRows.find((r) => r.id === pid)!;
+          return {
+            ...p,
+            sharedTags: shared,
+            totalShared: shared.length,
+          };
+        }).filter((p) => p.title); // filter out any missing
+      }
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -169,6 +241,48 @@ export default async function ProcessPage({
           </div>
         )}
       </article>
+
+      {/* Related Items */}
+      {relatedProcesses.length > 0 && (
+        <div className="mt-8">
+          <h2
+            className="text-2xl text-stone-900 dark:text-stone-100 mb-4 tracking-wide"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            RELATED ITEMS
+          </h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
+            Other entries that share tags with this one
+          </p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {relatedProcesses.map((rp) => (
+              <Link
+                key={rp.id}
+                href={`/process/${rp.id}`}
+                className="block bg-white dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800 p-4 hover:border-yellow-500 dark:hover:border-yellow-500 transition-colors group"
+              >
+                <h3 className="font-semibold text-stone-900 dark:text-stone-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-400 mb-1 line-clamp-2">
+                  {rp.title}
+                </h3>
+                <div className="text-xs text-stone-500 dark:text-stone-400 mb-3">
+                  by {rp.author}
+                  {rp.category && <span> &middot; {rp.category}</span>}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {rp.sharedTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-0.5 text-xs rounded-full bg-yellow-50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
