@@ -9,11 +9,12 @@ import { useCallback } from "react";
 interface RichEditorProps {
   content: string;
   onChange: (html: string) => void;
+  processId?: number;
 }
 
 type EditorType = ReturnType<typeof useEditor>;
 
-function MenuBar({ editor }: { editor: EditorType }) {
+function MenuBar({ editor, processId }: { editor: EditorType; processId?: number }) {
   if (!editor) return null;
 
   const addImage = useCallback(() => {
@@ -26,15 +27,24 @@ function MenuBar({ editor }: { editor: EditorType }) {
 
       const formData = new FormData();
       formData.append("file", file);
+      if (processId) formData.append("processId", String(processId));
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (res.ok) {
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          console.error("Image upload failed:", err.error);
+          return;
+        }
         const data = await res.json();
-        editor?.chain().focus().setImage({ src: data.url, alt: data.filename }).run();
+        const src = data.url || data.data;
+        editor?.chain().focus().setImage({ src, alt: data.filename }).run();
+      } catch (err) {
+        console.error("Image upload failed:", err);
       }
     };
     input.click();
-  }, [editor]);
+  }, [editor, processId]);
 
   const btnClass = (active: boolean) =>
     `px-2 py-1 rounded text-sm font-medium transition-colors ${
@@ -83,7 +93,7 @@ function MenuBar({ editor }: { editor: EditorType }) {
   );
 }
 
-export default function RichEditor({ content, onChange }: RichEditorProps) {
+export default function RichEditor({ content, onChange, processId }: RichEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -109,16 +119,21 @@ export default function RichEditor({ content, onChange }: RichEditorProps) {
             if (!file.type.startsWith("image/")) return;
             const formData = new FormData();
             formData.append("file", file);
-            const res = await fetch("/api/upload", { method: "POST", body: formData });
-            if (res.ok) {
+            if (processId) formData.append("processId", String(processId));
+            try {
+              const res = await fetch("/api/upload", { method: "POST", body: formData });
+              if (!res.ok) return;
               const data = await res.json();
+              const src = data.url || data.data;
               const { schema } = view.state;
-              const node = schema.nodes.image.create({ src: data.url, alt: data.filename });
+              const node = schema.nodes.image.create({ src, alt: data.filename });
               const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
               if (pos) {
                 const transaction = view.state.tr.insert(pos.pos, node);
                 view.dispatch(transaction);
               }
+            } catch (err) {
+              console.error("Image drop upload failed:", err);
             }
           });
           return true;
@@ -134,7 +149,7 @@ export default function RichEditor({ content, onChange }: RichEditorProps) {
 
   return (
     <div className="border border-stone-300 dark:border-stone-600 rounded overflow-hidden bg-white dark:bg-stone-900">
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} processId={processId} />
       <EditorContent editor={editor} />
     </div>
   );

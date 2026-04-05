@@ -36,10 +36,39 @@ body {
   color: var(--foreground);
 }
 
+/* Link colors for prose content */
+.prose a {
+  color: #ca8a04;
+  text-decoration: underline;
+}
+.prose a:hover {
+  color: #FBAA19;
+}
+.dark .prose a {
+  color: #FFCB05;
+}
+.dark .prose a:hover {
+  color: #fde68a;
+}
+
 /* Tiptap editor styles */
 .tiptap {
   outline: none;
   color: var(--foreground);
+}
+
+.tiptap a {
+  color: #ca8a04;
+  text-decoration: underline;
+}
+.tiptap a:hover {
+  color: #FBAA19;
+}
+.dark .tiptap a {
+  color: #FFCB05;
+}
+.dark .tiptap a:hover {
+  color: #fde68a;
 }
 
 .tiptap p.is-editor-empty:first-child::before {

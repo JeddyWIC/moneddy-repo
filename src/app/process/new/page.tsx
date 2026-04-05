@@ -86,7 +86,7 @@ function ProcessForm() {
 
       router.push(`/process/${process.id}`);
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
   };
@@ -140,11 +140,11 @@ function ProcessForm() {
           <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Category
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className={`${inputClass} md:w-auto`}
+              className={`${inputClass} flex-1 min-w-[120px] md:flex-none md:w-auto`}
             >
               <option value="">None</option>
               {categories.map((c) => (
@@ -153,7 +153,7 @@ function ProcessForm() {
                 </option>
               ))}
             </select>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-1 min-w-[160px]">
               <input
                 type="text"
                 value={newCategory}
@@ -165,12 +165,12 @@ function ProcessForm() {
                   }
                 }}
                 placeholder="New category..."
-                className={`${inputClass} w-40`}
+                className={`${inputClass} flex-1 min-w-0`}
               />
               <button
                 type="button"
                 onClick={handleAddCategory}
-                className="px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 rounded hover:bg-stone-300 dark:hover:bg-stone-600 text-sm font-medium transition-colors"
+                className="px-3 py-2 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 rounded hover:bg-stone-300 dark:hover:bg-stone-600 text-sm font-medium transition-colors shrink-0"
               >
                 +
               </button>
