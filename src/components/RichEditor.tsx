@@ -14,6 +14,52 @@ interface RichEditorProps {
 
 type EditorType = ReturnType<typeof useEditor>;
 
+// Compress image client-side before uploading
+function compressImage(file: File, maxWidth = 1200, quality = 0.7): Promise<File> {
+  return new Promise((resolve) => {
+    // Skip non-image or small files
+    if (!file.type.startsWith("image/") || file.size < 100 * 1024) {
+      resolve(file);
+      return;
+    }
+
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          } else {
+            resolve(file);
+          }
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 function MenuBar({ editor, processId }: { editor: EditorType; processId?: number }) {
   if (!editor) return null;
 
@@ -21,26 +67,29 @@ function MenuBar({ editor, processId }: { editor: EditorType; processId?: number
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
+    input.multiple = true;
     input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+      const files = input.files;
+      if (!files) return;
 
-      const formData = new FormData();
-      formData.append("file", file);
-      if (processId) formData.append("processId", String(processId));
+      for (const rawFile of Array.from(files)) {
+        const file = await compressImage(rawFile);
+        const formData = new FormData();
+        formData.append("file", file);
+        if (processId) formData.append("processId", String(processId));
 
-      try {
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!res.ok) {
-          const err = await res.json();
-          console.error("Image upload failed:", err.error);
-          return;
+        try {
+          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          if (!res.ok) {
+            console.error("Image upload failed");
+            continue;
+          }
+          const data = await res.json();
+          const src = data.url || data.data;
+          editor?.chain().focus().setImage({ src, alt: data.filename }).run();
+        } catch (err) {
+          console.error("Image upload failed:", err);
         }
-        const data = await res.json();
-        const src = data.url || data.data;
-        editor?.chain().focus().setImage({ src, alt: data.filename }).run();
-      } catch (err) {
-        console.error("Image upload failed:", err);
       }
     };
     input.click();
@@ -114,28 +163,33 @@ export default function RichEditor({ content, onChange, processId }: RichEditorP
       handleDrop: (view, event) => {
         const files = event.dataTransfer?.files;
         if (files && files.length > 0) {
+          const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+          if (imageFiles.length === 0) return false;
           event.preventDefault();
-          Array.from(files).forEach(async (file) => {
-            if (!file.type.startsWith("image/")) return;
-            const formData = new FormData();
-            formData.append("file", file);
-            if (processId) formData.append("processId", String(processId));
-            try {
-              const res = await fetch("/api/upload", { method: "POST", body: formData });
-              if (!res.ok) return;
-              const data = await res.json();
-              const src = data.url || data.data;
-              const { schema } = view.state;
-              const node = schema.nodes.image.create({ src, alt: data.filename });
-              const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
-              if (pos) {
-                const transaction = view.state.tr.insert(pos.pos, node);
+          const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+
+          // Upload sequentially to avoid overwhelming the server
+          (async () => {
+            for (const rawFile of imageFiles) {
+              const file = await compressImage(rawFile);
+              const formData = new FormData();
+              formData.append("file", file);
+              if (processId) formData.append("processId", String(processId));
+              try {
+                const res = await fetch("/api/upload", { method: "POST", body: formData });
+                if (!res.ok) continue;
+                const data = await res.json();
+                const src = data.url || data.data;
+                const { schema } = view.state;
+                const node = schema.nodes.image.create({ src, alt: data.filename });
+                const pos = dropPos?.pos ?? view.state.doc.content.size;
+                const transaction = view.state.tr.insert(pos, node);
                 view.dispatch(transaction);
+              } catch (err) {
+                console.error("Image drop upload failed:", err);
               }
-            } catch (err) {
-              console.error("Image drop upload failed:", err);
             }
-          });
+          })();
           return true;
         }
         return false;
