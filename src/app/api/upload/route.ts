@@ -16,18 +16,22 @@ export async function POST(request: NextRequest) {
     const base64 = Buffer.from(bytes).toString("base64");
     const dataUrl = `data:${file.type};base64,${base64}`;
 
+    // Always return the data URL for inline editor use
+    // Also try to save to DB if processId is provided
     if (processId && processId !== "undefined" && processId !== "null") {
       const pid = parseInt(processId);
       if (!isNaN(pid)) {
-        const [image] = await db
-          .insert(images)
-          .values({
-            processId: pid,
-            filename: file.name,
-            data: dataUrl,
-          })
-          .returning();
-        return NextResponse.json(image, { status: 201 });
+        try {
+          await db
+            .insert(images)
+            .values({
+              processId: pid,
+              filename: file.name,
+              data: dataUrl,
+            });
+        } catch {
+          // DB save failed but image still works inline via data URL
+        }
       }
     }
 

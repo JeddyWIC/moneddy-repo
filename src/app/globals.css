@@ -38,11 +38,12 @@ body {
 
 /* Link colors for prose content */
 .prose a {
-  color: #ca8a04;
+  color: #b45309;
   text-decoration: underline;
+  font-weight: 500;
 }
 .prose a:hover {
-  color: #FBAA19;
+  color: #d97706;
 }
 .dark .prose a {
   color: #FFCB05;
@@ -58,11 +59,12 @@ body {
 }
 
 .tiptap a {
-  color: #ca8a04;
+  color: #b45309;
   text-decoration: underline;
+  font-weight: 500;
 }
 .tiptap a:hover {
-  color: #FBAA19;
+  color: #d97706;
 }
 .dark .tiptap a {
   color: #FFCB05;

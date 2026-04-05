@@ -127,40 +127,40 @@ export default async function ProcessPage({
       <article className="bg-white dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-stone-100 dark:border-stone-800">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100 mb-2">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100">
                 {process.title}
               </h1>
-              <div className="flex items-center gap-3 text-sm text-stone-500 dark:text-stone-400">
-                <span>by {process.author}</span>
-                {process.category && (
-                  <>
-                    <span>&middot;</span>
-                    <span>{process.category}</span>
-                  </>
-                )}
-                <span>&middot;</span>
-                <span>
-                  Created {new Date(process.createdAt).toLocaleDateString()}
-                </span>
-                {process.updatedAt !== process.createdAt && (
-                  <>
-                    <span>&middot;</span>
-                    <span>
-                      Updated{" "}
-                      {new Date(process.updatedAt).toLocaleDateString()}
-                    </span>
-                  </>
-                )}
-              </div>
+              <Link
+                href={`/process/${processId}/edit`}
+                className="shrink-0 px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+              >
+                Edit
+              </Link>
             </div>
-            <Link
-              href={`/process/${processId}/edit`}
-              className="shrink-0 px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
-            >
-              Edit
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-500 dark:text-stone-400">
+              <span>by {process.author}</span>
+              {process.category && (
+                <>
+                  <span>&middot;</span>
+                  <span>{process.category}</span>
+                </>
+              )}
+              <span>&middot;</span>
+              <span>
+                Created {new Date(process.createdAt).toLocaleDateString()}
+              </span>
+              {process.updatedAt !== process.createdAt && (
+                <>
+                  <span>&middot;</span>
+                  <span>
+                    Updated{" "}
+                    {new Date(process.updatedAt).toLocaleDateString()}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Tags */}
