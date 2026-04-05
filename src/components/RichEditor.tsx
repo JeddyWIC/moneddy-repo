@@ -14,8 +14,19 @@ interface RichEditorProps {
 
 type EditorType = ReturnType<typeof useEditor>;
 
+const MAX_IMAGES = 3;
+
+function countImages(editor: EditorType): number {
+  if (!editor) return 0;
+  let count = 0;
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === "image") count++;
+  });
+  return count;
+}
+
 // Compress image client-side before uploading
-function compressImage(file: File, maxWidth = 1200, quality = 0.7): Promise<File> {
+function compressImage(file: File, maxWidth = 800, quality = 0.5): Promise<File> {
   return new Promise((resolve) => {
     // Skip non-image or small files
     if (!file.type.startsWith("image/") || file.size < 100 * 1024) {
@@ -72,7 +83,19 @@ function MenuBar({ editor, processId }: { editor: EditorType; processId?: number
       const files = input.files;
       if (!files) return;
 
-      for (const rawFile of Array.from(files)) {
+      const current = countImages(editor);
+      const allowed = MAX_IMAGES - current;
+      if (allowed <= 0) {
+        alert(`Maximum ${MAX_IMAGES} images allowed per entry. Use Attachments for additional files.`);
+        return;
+      }
+
+      const toUpload = Array.from(files).slice(0, allowed);
+      if (toUpload.length < files.length) {
+        alert(`Only adding ${toUpload.length} of ${files.length} images (max ${MAX_IMAGES} total). Use Attachments for additional files.`);
+      }
+
+      for (const rawFile of toUpload) {
         const file = await compressImage(rawFile);
         const formData = new FormData();
         formData.append("file", file);
@@ -168,9 +191,20 @@ export default function RichEditor({ content, onChange, processId }: RichEditorP
           event.preventDefault();
           const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY });
 
-          // Upload sequentially to avoid overwhelming the server
+          // Upload sequentially with limit
           (async () => {
-            for (const rawFile of imageFiles) {
+            let current = 0;
+            view.state.doc.descendants((node) => {
+              if (node.type.name === "image") current++;
+            });
+            const allowed = MAX_IMAGES - current;
+            if (allowed <= 0) {
+              alert(`Maximum ${MAX_IMAGES} images allowed per entry. Use Attachments for additional files.`);
+              return;
+            }
+            const toUpload = imageFiles.slice(0, allowed);
+
+            for (const rawFile of toUpload) {
               const file = await compressImage(rawFile);
               const formData = new FormData();
               formData.append("file", file);
