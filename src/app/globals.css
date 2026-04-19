@@ -36,20 +36,28 @@ body {
   color: var(--foreground);
 }
 
-/* Link colors for prose content */
-.prose a {
-  color: #b45309;
+/* Link colors for prose content —
+   !important + nested-child selectors so inline `color:` styles
+   carried in from pasted HTML (Google Docs, Notion, Word) can't
+   override the theme colors against dark backgrounds. */
+.prose a,
+.prose a * {
+  color: #b45309 !important;
   text-decoration: underline;
   font-weight: 500;
+  word-break: break-all;
 }
-.prose a:hover {
-  color: #d97706;
+.prose a:hover,
+.prose a:hover * {
+  color: #d97706 !important;
 }
-.dark .prose a {
-  color: #FFCB05;
+.dark .prose a,
+.dark .prose a * {
+  color: #FFCB05 !important;
 }
-.dark .prose a:hover {
-  color: #fde68a;
+.dark .prose a:hover,
+.dark .prose a:hover * {
+  color: #fde68a !important;
 }
 
 /* Tiptap editor styles */
@@ -58,19 +66,24 @@ body {
   color: var(--foreground);
 }
 
-.tiptap a {
-  color: #b45309;
+.tiptap a,
+.tiptap a * {
+  color: #b45309 !important;
   text-decoration: underline;
   font-weight: 500;
+  cursor: pointer;
 }
-.tiptap a:hover {
-  color: #d97706;
+.tiptap a:hover,
+.tiptap a:hover * {
+  color: #d97706 !important;
 }
-.dark .tiptap a {
-  color: #FFCB05;
+.dark .tiptap a,
+.dark .tiptap a * {
+  color: #FFCB05 !important;
 }
-.dark .tiptap a:hover {
-  color: #fde68a;
+.dark .tiptap a:hover,
+.dark .tiptap a:hover * {
+  color: #fde68a !important;
 }
 
 .tiptap p.is-editor-empty:first-child::before {

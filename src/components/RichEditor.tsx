@@ -183,6 +183,36 @@ export default function RichEditor({ content, onChange, processId }: RichEditorP
       attributes: {
         class: "prose prose-sm max-w-none p-4 min-h-[300px] focus:outline-none",
       },
+      transformPastedHTML: (html) => {
+        // Strip inline color / background styles that get pasted from
+        // sources like Google Docs, Notion, Word — they make links blue
+        // on our dark backgrounds.
+        if (typeof window === "undefined") return html;
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        doc.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+          const style = el.getAttribute("style") || "";
+          const cleaned = style
+            .split(";")
+            .map((decl) => decl.trim())
+            .filter((decl) => {
+              const prop = decl.split(":")[0]?.trim().toLowerCase();
+              return (
+                prop &&
+                prop !== "color" &&
+                prop !== "background" &&
+                prop !== "background-color"
+              );
+            })
+            .join("; ");
+          if (cleaned) el.setAttribute("style", cleaned);
+          else el.removeAttribute("style");
+        });
+        // Also drop legacy color attributes.
+        doc.querySelectorAll<HTMLElement>("[color]").forEach((el) => {
+          el.removeAttribute("color");
+        });
+        return doc.body.innerHTML;
+      },
       handleDrop: (view, event) => {
         const files = event.dataTransfer?.files;
         if (files && files.length > 0) {
